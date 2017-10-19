@@ -3,11 +3,11 @@ pragma solidity ^0.4.4;
 contract SentinelsICO {
 
     address public owner;
+    address withdrawWallet;
 
     bool contractLive;
-
-    uint MinSatoshis;
-
+    uint MinEther;
+    uint TotalMaxEther;
     uint public ICOStart;
     uint public ICOClose;
 
@@ -15,19 +15,22 @@ contract SentinelsICO {
     mapping (address => address) sponsorAddrIdx;
     address[] public sponsors;
 
-    function SentinelsICO() {
-        MinSatoshis = 1000;
+    function SentinelsICO(address _withdrawWallet) {
+        MinEther = 10;
+        TotalMaxEther = 10000;
         ICOStart = now;
         ICOClose = now + 14 days;
         contractLive = true;
         owner = msg.sender;
+        withdrawWallet = _withdrawWallet;
     }
 
     function sponsor() payable returns (bool) {
         require ( now < ICOClose );
         require ( now > ICOStart );
-        require ( msg.value > MinSatoshis );
-        require (contractLive);
+        require ( msg.value > MinEther );
+        require ( contractLive );
+        require (( ower.balance + msg.value ) < TotalMaxEther )
 
         recordSponsor(msg.sender, msg.value);
 
@@ -58,6 +61,10 @@ contract SentinelsICO {
         contractLive = false;
     }
 
+    function withdraw() onlyBy (owner) {
+        withdrawWallet.transfer(this.balance);
+    }
+
     function changeOwner(address _newOwner) onlyBy(owner) {
         owner = _newOwner;
     }
@@ -66,6 +73,7 @@ contract SentinelsICO {
         require(msg.sender == _account);
         _;
     }
+
 
 }
 
