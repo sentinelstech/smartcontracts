@@ -1,6 +1,9 @@
 pragma solidity ^0.4.15;
 
 contract ERC20Interface {
+    function name() constant returns (string name);
+    function symbol() constant returns (string symbol);
+    function decimals() constant returns (uint8 decimals);
     function totalSupply() constant returns (uint256 totalSupply);
     function balanceOf(address _owner) constant returns (uint256 balance);
     function transfer(address _to, uint256 _value) returns (bool success);
@@ -12,16 +15,16 @@ contract ERC20Interface {
 }
 
 contract TokenSTN is ERC20Interface {
-    string public name = "Sentinels";
-    string public symbol = "STN";
-    uint8 public decimals = 18;
+    string public Name = "Sentinels";
+    string public Symbol = "STN";
+    uint8 public Decimals = 18;
     // inital supply is 1bn 
-    uint256 TotalSupply = 1000000000 * 10 ** uint256(decimals);
+    uint256 TotalSupply = 1000000000 * 10 ** uint256(Decimals);
 
-    address public owner;
+    address public Owner;
 
-    mapping (address => uint256) public balances;
-    mapping (address => mapping (address => uint256)) public allowances;
+    mapping (address => uint256) public Balances;
+    mapping (address => mapping (address => uint256)) public Allowances;
 
     // Events
     // ------------------------------------------------------------------------
@@ -32,7 +35,7 @@ contract TokenSTN is ERC20Interface {
     // ------------------------------------------------------------------------
 
     modifier onlyOwner() {
-        require(msg.sender == owner);
+        require(msg.sender == Owner);
         _;
     }
 
@@ -40,23 +43,39 @@ contract TokenSTN is ERC20Interface {
     // ------------------------------------------------------------------------
 
     function TokenSTN () public {
-        balances[msg.sender] = TotalSupply;
-        owner = msg.sender;
+        Balances[msg.sender] = TotalSupply;
+        Owner = msg.sender;
     }
 
     // Non-State Changing Methods
     // ------------------------------------------------------------------------
 
-    function totalSupply() constant returns (uint256 totalSupply) {
+    function name() constant public returns (string name) {
+        name = Name;
+    }
+
+    function symbol() constant public returns (string symbol) {
+        symbol = Symbol;
+    }
+
+    function decimals() constant public returns (uint8 decimals) {
+        decimals = Decimals;
+    }
+
+    function totalSupply() constant public returns (uint256 totalSupply) {
         totalSupply = TotalSupply;
     }
 
-    function balanceOf(address _owner) constant returns (uint256 balance) {
-        return balances[_owner];
+    function owner() constant public returns (address owner) {
+        owner = Owner;
     }
 
-    function allowance(address _owner, address _spender) constant returns (uint256 remaining) {
-        return allowances[_owner][_spender];
+    function balanceOf(address _owner) constant public returns (uint256 balance) {
+        return Balances[_owner];
+    }
+
+    function allowance(address _owner, address _spender) constant public returns (uint256 remaining) {
+        return Allowances[_owner][_spender];
     }
 
     // State Changing Methods
@@ -64,15 +83,14 @@ contract TokenSTN is ERC20Interface {
 
     function _transfer(address _from, address _to, uint _value) internal returns (bool success) {
         if (_to != 0x0
-            && balances[_from] >= _value 
-            && _value > 0
-            && balances[_to] + _value > balances[_to] )
+            && Balances[_from] >= _value 
+            && Balances[_to] + _value >= Balances[_to] )
         {
-            uint previousBalances = balances[_from] + balances[_to];
-            balances[_from] -= _value;
-            balances[_to] += _value;
+            uint previousBalances = Balances[_from] + Balances[_to];
+            Balances[_from] -= _value;
+            Balances[_to] += _value;
             Transfer(_from, _to, _value);
-            assert(balances[_from] + balances[_to] == previousBalances);
+            assert(Balances[_from] + Balances[_to] == previousBalances);
             return true;
         } else { 
             return false;
@@ -84,8 +102,8 @@ contract TokenSTN is ERC20Interface {
     }
 
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
-        if (_value <= allowances[_from][msg.sender]) {
-            allowances[_from][msg.sender] -= _value;
+        if (_value <= Allowances[_from][msg.sender]) {
+            Allowances[_from][msg.sender] -= _value;
             success = _transfer(_from, _to, _value);
         } else {
             success = false;
@@ -93,14 +111,14 @@ contract TokenSTN is ERC20Interface {
     }
 
     function approve(address _spender, uint256 _value) public returns (bool success) {
-        allowances[msg.sender][_spender] = _value;
+        Allowances[msg.sender][_spender] = _value;
         Approval(msg.sender, _spender, _value);
         success = true;
     }
 
     function burn(uint256 _value) public returns (bool success) {
-        if (balances[msg.sender] >= _value) {
-            balances[msg.sender] -= _value;
+        if (Balances[msg.sender] >= _value) {
+            Balances[msg.sender] -= _value;
             TotalSupply -= _value;
             Burn(msg.sender, _value);
             success = true;
@@ -110,11 +128,11 @@ contract TokenSTN is ERC20Interface {
     }
 
     function burnFrom(address _from, uint256 _value) public returns (bool success) {
-        if ( balances[_from] >= _value
-             && _value <= allowances[_from][msg.sender] )
+        if ( Balances[_from] >= _value
+             && _value <= Allowances[_from][msg.sender] )
         { 
-                balances[_from] -= _value;
-                allowances[_from][msg.sender] -= _value;
+                Balances[_from] -= _value;
+                Allowances[_from][msg.sender] -= _value;
                 TotalSupply -= _value;
                 Burn(_from, _value);
                 success = true;
@@ -126,16 +144,16 @@ contract TokenSTN is ERC20Interface {
     // Admin Functions
     // ------------------------------------------------------------------------
 
-    function changeName(string _newName) onlyOwner() {
-        name = _newName;
+    function changeName(string _newName) public onlyOwner() {
+        Name = _newName;
     }
 
-    function changeSymbol(string _newSymbol) onlyOwner() {
-        symbol = _newSymbol;
+    function changeSymbol(string _newSymbol) public onlyOwner() {
+        Symbol = _newSymbol;
     }
 
-    function changeOwner(address _newOwner) onlyOwner() {
-        owner = _newOwner;
+    function changeOwner(address _newOwner) public onlyOwner() {
+        Owner = _newOwner;
     }
 
 }
