@@ -2,109 +2,103 @@ pragma solidity ^0.4.15;
 
 contract SentinelsICO {
 
-    address public owner;
-    address withdrawWallet;
+    address public Owner;
+    address WithdrawWallet;
 
     bool contractLive;
-    uint MinEther;
-    uint TotalMaxWei;
-    uint public ICOStart;
-    uint public ICOClose;
+    // Smallest sponsorship amount
+    uint256 MinimumSponsorship = 10 finney;
+    // Amount of ETH available in this ICO
+    uint256 TotalMaxSponsorship = 1000 ether;
+    uint256 public ICOStart;
+    uint256 public ICOClose;
 
-    mapping(address => uint) public sponsorAmounts;
-    mapping (address => address) sponsorAddrIdx;
-    address[] public sponsors;
+    mapping(address => uint256) public SponsorAmounts;
+    mapping(address => address) SponsorAddrIdx;
 
     // Events
     // ------------------------------------------------------------------------
-    event Sponsor(address indexed sponsor, uint amount);
+    event Sponsor(address indexed sponsor, uint256 amount);
 
 
     // Modifiers
     // ------------------------------------------------------------------------
-    modifier onlyBy(address _account) {
-        require(msg.sender == _account);
+    modifier onlyOwner() {
+        require(msg.sender == Owner);
         _;
     }
     
     // Constructor
     // ------------------------------------------------------------------------
     function SentinelsICO(address _withdrawWallet) {
-        MinEther = 10;
-        TotalMaxWei = 10000;
-        ICOStart = now;
+        ICOStart = now - 1 days;
         ICOClose = now + 14 days;
         contractLive = true;
-        owner = msg.sender;
-        withdrawWallet = _withdrawWallet;
+        Owner = msg.sender;
+        WithdrawWallet = _withdrawWallet;
     }
 
     // Non-State Changing Methods
     // ------------------------------------------------------------------------
-    function test() returns (string) {
-        return "test";
-    }
-
-    function getNow() returns (uint) {
-        return now;
-    }
-
-    function getBalance() returns (uint) {
-        return this.balance;
-    }
-
     function icoActive() returns (bool) {
         if ((contractLive == true ) && ( now < ICOClose ) && ( now > ICOStart )) {
             return true;
         }
-
         return false; 
     }
 
-    function getSponsors() public returns (address) {
-        address currentAddr = sponsorAddrIdx[0x0];
-        while (currentAddr != 0) {
-            //console.log(currentAddr + " -- " + sponsorAmounts[currentAddr]);
-            currentAddr = sponsorAddrIdx[currentAddr];
-        }
+    // from 0x0 to 0
+    function getNextSponsor(address _address) public returns (address) {
+        return SponsorAddrIdx[_address];
+    }
+
+    function getAmount(address _address) public returns (uint256) {
+        return SponsorAmounts[_address];
     }
 
     // State Changing Methods
     // ------------------------------------------------------------------------
-    function sponsor() payable returns (bool) {
+    function sponsor() payable public returns (bool) {
         require ( now < ICOClose );
         require ( now > ICOStart );
-        require ( msg.value > MinEther );
+        require ( msg.value > MinimumSponsorship );
         require ( contractLive );
-        require (( this.balance + msg.value ) <= TotalMaxWei );
+        require (( this.balance + msg.value ) <= TotalMaxSponsorship );
 
         recordSponsor(msg.sender, msg.value);
 
         return true;
     }
 
-    function addSponsorAddr(address _addr) {
-        sponsorAddrIdx[_addr] = sponsorAddrIdx[0x0];
-        sponsorAddrIdx[0x0] = _addr;
-    }
-
-    function recordSponsor(address _addr, uint amount) {
-        if (sponsorAmounts[_addr] == 0) {
+    function recordSponsor(address _addr, uint256 amount) {
+        if (SponsorAmounts[_addr] == 0) {
             addSponsorAddr(_addr);
         }
-        sponsorAmounts[_addr] += amount;
+        SponsorAmounts[_addr] += amount;
+        Sponsor(_addr, amount);
     }
 
-    function closeICO() onlyBy (owner) {
+    function addSponsorAddr(address _addr) {
+        SponsorAddrIdx[_addr] = SponsorAddrIdx[0x0];
+        SponsorAddrIdx[0x0] = _addr;
+    }
+
+    // Admin Functions
+    // ------------------------------------------------------------------------
+    function closeICO() public onlyOwner() {
         contractLive = false;
     }
 
-    function withdraw() onlyBy (owner) {
-        withdrawWallet.transfer(this.balance);
+    function withdraw() public onlyOwner() {
+        WithdrawWallet.transfer(this.balance);
     }
 
-    function changeOwner(address _newOwner) onlyBy(owner) {
-        owner = _newOwner;
+    function changeOwner(address _newOwner) public onlyOwner() {
+        Owner = _newOwner;
+    }
+
+    function changeWithdrawWallet(address _address) public onlyOwner() {
+        WithdrawWallet = _address;
     }
 }
 
