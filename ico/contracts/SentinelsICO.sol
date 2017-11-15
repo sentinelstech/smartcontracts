@@ -1,4 +1,4 @@
-pragma solidity ^0.4.4;
+pragma solidity ^0.4.15;
 
 contract SentinelsICO {
 
@@ -7,7 +7,7 @@ contract SentinelsICO {
 
     bool contractLive;
     uint MinEther;
-    uint TotalMaxEther;
+    uint TotalMaxWei;
     uint public ICOStart;
     uint public ICOClose;
 
@@ -15,9 +15,23 @@ contract SentinelsICO {
     mapping (address => address) sponsorAddrIdx;
     address[] public sponsors;
 
+    // Events
+    // ------------------------------------------------------------------------
+    event Sponsor(address indexed sponsor, uint amount);
+
+
+    // Modifiers
+    // ------------------------------------------------------------------------
+    modifier onlyBy(address _account) {
+        require(msg.sender == _account);
+        _;
+    }
+    
+    // Constructor
+    // ------------------------------------------------------------------------
     function SentinelsICO(address _withdrawWallet) {
         MinEther = 10;
-        TotalMaxEther = 10000;
+        TotalMaxWei = 10000;
         ICOStart = now;
         ICOClose = now + 14 days;
         contractLive = true;
@@ -25,24 +39,48 @@ contract SentinelsICO {
         withdrawWallet = _withdrawWallet;
     }
 
-    function sponsor() payable returns (bool) {
-        require ( now < ICOClose );
-        require ( now > ICOStart );
-        require ( msg.value > MinEther );
-        require ( contractLive );
-        require (( ower.balance + msg.value ) < TotalMaxEther )
+    // Non-State Changing Methods
+    // ------------------------------------------------------------------------
+    function test() returns (string) {
+        return "test";
+    }
 
-        recordSponsor(msg.sender, msg.value);
+    function getNow() returns (uint) {
+        return now;
+    }
 
-        return true;
+    function getBalance() returns (uint) {
+        return this.balance;
+    }
+
+    function icoActive() returns (bool) {
+        if ((contractLive == true ) && ( now < ICOClose ) && ( now > ICOStart )) {
+            return true;
+        }
+
+        return false; 
     }
 
     function getSponsors() public returns (address) {
         address currentAddr = sponsorAddrIdx[0x0];
         while (currentAddr != 0) {
-            console.log(currentAddr + " -- " + sponsorAmounts[currentAddr]);
+            //console.log(currentAddr + " -- " + sponsorAmounts[currentAddr]);
             currentAddr = sponsorAddrIdx[currentAddr];
         }
+    }
+
+    // State Changing Methods
+    // ------------------------------------------------------------------------
+    function sponsor() payable returns (bool) {
+        require ( now < ICOClose );
+        require ( now > ICOStart );
+        require ( msg.value > MinEther );
+        require ( contractLive );
+        require (( this.balance + msg.value ) <= TotalMaxWei );
+
+        recordSponsor(msg.sender, msg.value);
+
+        return true;
     }
 
     function addSponsorAddr(address _addr) {
@@ -68,12 +106,5 @@ contract SentinelsICO {
     function changeOwner(address _newOwner) onlyBy(owner) {
         owner = _newOwner;
     }
-
-    modifier onlyBy(address _account) {
-        require(msg.sender == _account);
-        _;
-    }
-
-
 }
 
